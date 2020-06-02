@@ -1572,6 +1572,12 @@ var _ = Describe("RuntimePolicies", func() {
 					"No ingress policy log record",
 				)
 
+				By("Testing cilium monitor output")
+				monitorRes.ExpectContains(
+					fmt.Sprintf("local EP ID %s, remote ID 1, dst port 0, proto 1, ingress true, action audit", endpointID),
+					"No ingress policy log record",
+				)
+
 				By("Testing cilium endpoint list output")
 				res = vm.Exec("cilium endpoint list")
 				res.ExpectMatchesRegexp(endpointID+"\\s*Disabled \\(Audit\\)\\s*Disabled \\(Audit\\)", "Endpoint is not in audit mode")
@@ -1610,6 +1616,12 @@ var _ = Describe("RuntimePolicies", func() {
 				By("Testing cilium monitor output")
 				monitorRes.ExpectContains(
 					fmt.Sprintf("ID %s, remote ID 1, proto 1, egress, action audit", endpointID),
+					"No egress policy log record",
+				)
+
+				By("Testing cilium monitor output")
+				monitorRes.ExpectContains(
+					fmt.Sprintf("ID %s, remote ID 1, dst port 0, proto 1, ingress false, action audit", endpointID),
 					"No egress policy log record",
 				)
 
