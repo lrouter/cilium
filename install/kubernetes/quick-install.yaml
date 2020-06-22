@@ -416,8 +416,13 @@ spec:
               key: custom-cni-conf
               name: cilium-config
               optional: true
+<<<<<<< HEAD
         image: "docker.io/cilium/cilium:latest"
         imagePullPolicy: Always
+=======
+        image: "docker.io/cilium/cilium:v1.8.0"
+        imagePullPolicy: IfNotPresent
+>>>>>>> f455c7e69... Prepare for release v1.8.0
         lifecycle:
           postStart:
             exec:
@@ -479,8 +484,13 @@ spec:
               key: wait-bpf-mount
               name: cilium-config
               optional: true
+<<<<<<< HEAD
         image: "docker.io/cilium/cilium:latest"
         imagePullPolicy: Always
+=======
+        image: "docker.io/cilium/cilium:v1.8.0"
+        imagePullPolicy: IfNotPresent
+>>>>>>> f455c7e69... Prepare for release v1.8.0
         name: clean-cilium-state
         securityContext:
           capabilities:
@@ -614,8 +624,31 @@ spec:
               key: debug
               name: cilium-config
               optional: true
+<<<<<<< HEAD
         image: "docker.io/cilium/operator-generic:latest"
         imagePullPolicy: Always
+=======
+        - name: AWS_ACCESS_KEY_ID
+          valueFrom:
+            secretKeyRef:
+              key: AWS_ACCESS_KEY_ID
+              name: cilium-aws
+              optional: true
+        - name: AWS_SECRET_ACCESS_KEY
+          valueFrom:
+            secretKeyRef:
+              key: AWS_SECRET_ACCESS_KEY
+              name: cilium-aws
+              optional: true
+        - name: AWS_DEFAULT_REGION
+          valueFrom:
+            secretKeyRef:
+              key: AWS_DEFAULT_REGION
+              name: cilium-aws
+              optional: true
+        image: "docker.io/cilium/operator-generic:v1.8.0"
+        imagePullPolicy: IfNotPresent
+>>>>>>> f455c7e69... Prepare for release v1.8.0
         name: cilium-operator
         livenessProbe:
           httpGet:

@@ -1,7 +1,13 @@
 apiVersion: v2
 name: preflight
+<<<<<<< HEAD
 version: 1.8.90
 appVersion: 1.8.90
+=======
+version: 1.8.0
+appVersion: 1.8.0
+tillerVersion: ">=2.7.2"
+>>>>>>> f455c7e69... Prepare for release v1.8.0
 description: Helm chart for pre-flight functionality
 keywords:
 sources:
