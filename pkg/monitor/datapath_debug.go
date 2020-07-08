@@ -384,6 +384,14 @@ func (n *DebugMsg) subTypeString() string {
 		return fmt.Sprintf("Socket lookup: %s", ctLookup6Info1(n))
 	case DbgSkAssign:
 		return fmt.Sprintf("Socket assign: %s", skAssignInfo(n))
+	case DbgLbLookupMaglev:
+		return fmt.Sprintf("Maglev service lookup, svc_id=%x dport=%d", byteorder.NetworkToHost(uint16(n.Arg1)), byteorder.NetworkToHost(uint16(n.Arg2)))
+	case DbgLbLookupMaglevFail:
+		return fmt.Sprintf("Maglev service lookup failed, svc_id=%x dport=%d", byteorder.NetworkToHost(uint16(n.Arg1)), byteorder.NetworkToHost(uint16(n.Arg2)))
+	case DbgLbLookupMaglevSuccess:
+		return fmt.Sprintf("Maglev service lookup result, svc_id=%x backend_id=%d", byteorder.NetworkToHost(uint16(n.Arg1)), n.Arg2)
+	case DbgLbLookupMaglevOuterFail:
+		return fmt.Sprintf("Maglev service lookup outer failed, svc_id=%x dport=%d", byteorder.NetworkToHost(uint16(n.Arg1)), byteorder.NetworkToHost(uint16(n.Arg2)))
 	default:
 		return fmt.Sprintf("Unknown message type=%d arg1=%d arg2=%d", n.SubType, n.Arg1, n.Arg2)
 	}

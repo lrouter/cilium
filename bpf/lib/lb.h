@@ -899,6 +899,12 @@ struct lb6_service *__lb6_lookup_backend_slot(struct lb6_key *key __maybe_unused
     return NULL;
 }
 
+static __always_inline
+int __lb6_select_backend(struct lb6_key *key, const struct lb6_service *svc)
+{
+    return -1;
+}
+
 static __always_inline struct lb6_backend *
 __lb6_lookup_backend(__u16 backend_id __maybe_unused)
 {
