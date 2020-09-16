@@ -44,7 +44,7 @@ func (m *ManagerTestSuite) SetUpTest(c *C) {
 	serviceIDAlloc.resetLocalID()
 	backendIDAlloc.resetLocalID()
 
-	m.svc = NewService(nil)
+	m.svc = NewService(nil, "")
 	m.svc.lbmap = lbmap.NewLBMockMap()
 	m.lbmap = m.svc.lbmap.(*lbmap.LBMockMap)
 
@@ -228,7 +228,7 @@ func (m *ManagerTestSuite) TestRestoreServices(c *C) {
 
 	// Restart service, but keep the lbmap to restore services from
 	lbmap := m.svc.lbmap.(*lbmap.LBMockMap)
-	m.svc = NewService(nil)
+	m.svc = NewService(nil, "")
 	m.svc.lbmap = lbmap
 
 	// Add non-existing affinity matches
@@ -310,7 +310,7 @@ func (m *ManagerTestSuite) TestSyncWithK8sFinished(c *C) {
 
 	// Restart service, but keep the lbmap to restore services from
 	lbmap := m.svc.lbmap.(*lbmap.LBMockMap)
-	m.svc = NewService(nil)
+	m.svc = NewService(nil, "")
 	m.svc.lbmap = lbmap
 	err = m.svc.RestoreServices()
 	c.Assert(err, IsNil)

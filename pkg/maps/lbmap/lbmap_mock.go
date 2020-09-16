@@ -39,17 +39,16 @@ func NewLBMockMap() *LBMockMap {
 }
 
 func (m *LBMockMap) UpsertService(id uint16, ip net.IP, port uint16,
-	backends map[string]uint16, prevCount int, ipv6 bool, svcType lb.SVCType, svcLocal bool,
-	svcScope uint8, sessionAffinity bool, sessionAffinityTimeoutSec uint32, checkLBSrcRange bool,
-	maglev bool) error {
+	backendIDs []*lb.BackendMeta, prevCount int, ipv6 bool, svcType lb.SVCType, svcLocal bool,
+	svcScope uint8, sessionAffinity bool, sessionAffinityTimeoutSec uint32) error {
 
-	backendsList := make([]lb.Backend, 0, len(backends))
-	for name, backendID := range backends {
-		b, found := m.BackendByID[backendID]
+	backends := make([]lb.Backend, len(backendIDs))
+	for i, backendID := range backendIDs {
+		b, found := m.BackendByID[uint16(backendID.ID)]
 		if !found {
-			return fmt.Errorf("Backend %s (%d) not found", name, id)
+			return fmt.Errorf("Backend %d not found", id)
 		}
-		backendsList = append(backendsList, *b)
+		backends[i] = *b
 	}
 
 	svc, found := m.ServiceByID[id]
@@ -61,7 +60,7 @@ func (m *LBMockMap) UpsertService(id uint16, ip net.IP, port uint16,
 			return fmt.Errorf("Invalid backends count: %d vs %d", prevCount, len(svc.Backends))
 		}
 	}
-	svc.Backends = backendsList
+	svc.Backends = backends
 	svc.SessionAffinity = sessionAffinity
 	svc.SessionAffinityTimeoutSec = sessionAffinityTimeoutSec
 

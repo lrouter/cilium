@@ -154,6 +154,8 @@ struct bpf_elf_map __section_maps LB4_MAGLEV_MAP_OUTER = {
 #endif /* LB_SELECTION == LB_SELECTION_MAGLEV */
 #endif /* ENABLE_IPV4 */
 
+#include "backend_selector.h"
+
 #ifdef ENABLE_SESSION_AFFINITY
 struct bpf_elf_map __section_maps LB_AFFINITY_MATCH_MAP = {
 	.type		= BPF_MAP_TYPE_HASH,
@@ -793,7 +795,9 @@ static __always_inline int lb6_local(const void *map, struct __ctx_buff *ctx,
 		}
 #endif
 		if (backend_id == 0) {
-			backend_id = lb6_select_backend_id(ctx, key, tuple, svc);
+			if ((backend_id = lb6_select_backend(ctx, key, tuple, svc)) == (__u32)-1)
+				goto drop_no_service;
+
 			backend = lb6_lookup_backend(ctx, backend_id);
 			if (backend == NULL)
 				goto drop_no_service;
@@ -829,9 +833,8 @@ static __always_inline int lb6_local(const void *map, struct __ctx_buff *ctx,
 			backend_id = lb6_affinity_backend_id_by_addr(svc,
 								     &client_id);
 #endif
-		if (!backend_id) {
-			backend_id = lb6_select_backend_id(ctx, key, tuple, svc);
-			if (!backend_id)
+		if (backend_id == 0) {
+			if ((backend_id = lb6_select_backend(ctx, key, tuple, svc)) == (__u32)-1)
 				goto drop_no_service;
 		}
 
@@ -850,7 +853,8 @@ static __always_inline int lb6_local(const void *map, struct __ctx_buff *ctx,
 		svc = lb6_lookup_service(key, false);
 		if (!svc)
 			goto drop_no_service;
-		backend_id = lb6_select_backend_id(ctx, key, tuple, svc);
+		if ((backend_id = lb6_select_backend(ctx, key, tuple, svc)) == (__u32)-1)
+			goto drop_no_service;
 		backend = lb6_lookup_backend(ctx, backend_id);
 		if (!backend)
 			goto drop_no_service;
@@ -889,11 +893,10 @@ struct lb6_service *lb6_lookup_service(struct lb6_key *key __maybe_unused,
 {
 	return NULL;
 }
-
 static __always_inline
 struct lb6_service *__lb6_lookup_backend_slot(struct lb6_key *key __maybe_unused)
 {
-	return NULL;
+    return NULL;
 }
 
 static __always_inline struct lb6_backend *
@@ -1327,7 +1330,9 @@ static __always_inline int lb4_local(const void *map, struct __ctx_buff *ctx,
 #endif
 		if (backend_id == 0) {
 			/* No CT entry has been found, so select a svc endpoint */
-			backend_id = lb4_select_backend_id(ctx, key, tuple, svc);
+			if ((backend_id = lb4_select_backend(ctx, key, tuple, svc)) == (__u32)-1)
+				goto drop_no_service;
+
 			backend = lb4_lookup_backend(ctx, backend_id);
 			if (backend == NULL)
 				goto drop_no_service;
@@ -1374,9 +1379,8 @@ static __always_inline int lb4_local(const void *map, struct __ctx_buff *ctx,
 			backend_id = lb4_affinity_backend_id_by_addr(svc,
 								     &client_id);
 #endif
-		if (!backend_id) {
-			backend_id = lb4_select_backend_id(ctx, key, tuple, svc);
-			if (!backend_id)
+		if (backend_id == 0) {
+			if ((backend_id = lb4_select_backend(ctx, key, tuple, svc)) == (__u32)-1)
 				goto drop_no_service;
 		}
 
@@ -1395,7 +1399,8 @@ static __always_inline int lb4_local(const void *map, struct __ctx_buff *ctx,
 		svc = lb4_lookup_service(key, false);
 		if (!svc)
 			goto drop_no_service;
-		backend_id = lb4_select_backend_id(ctx, key, tuple, svc);
+		if ((backend_id = lb4_select_backend(ctx, key, tuple, svc)) == (__u32)-1)
+			goto drop_no_service;
 		backend = lb4_lookup_backend(ctx, backend_id);
 		if (!backend)
 			goto drop_no_service;

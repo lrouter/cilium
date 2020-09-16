@@ -130,7 +130,10 @@ type policyRepository interface {
 
 type svcManager interface {
 	DeleteService(frontend loadbalancer.L3n4Addr) (bool, error)
-	UpsertService(*loadbalancer.SVC) (bool, loadbalancer.ID, error)
+	UpsertService(frontend loadbalancer.L3n4AddrID, backends []loadbalancer.Backend,
+		svcType loadbalancer.SVCType, svcTrafficPolicy loadbalancer.SVCTrafficPolicy,
+		sessionAffinity bool, sessionAffinityTimeoutSec uint32,
+		svcHealthCheckNodePort uint16, svcName, svcNamespace string, keepBackend bool) (bool, loadbalancer.ID, error)
 }
 
 type K8sWatcher struct {
@@ -801,6 +804,11 @@ func (k *K8sWatcher) addK8sSVCs(svcID k8s.ServiceID, oldSvc, svc *k8s.Service, e
 				}
 			}
 		}
+	}
+
+	keepBackend := false
+	if svc.Labels["offline-backend"] == "keep" {
+		keepBackend = true
 	}
 
 	for _, dpSvc := range svcs {

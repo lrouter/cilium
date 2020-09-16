@@ -42,9 +42,8 @@ var (
 
 // LBMap is the interface describing methods for manipulating service maps.
 type LBMap interface {
-	UpsertService(uint16, net.IP, uint16, map[string]uint16, int, bool, lb.SVCType,
-		bool, uint8, bool, uint32, bool, bool) error
-	DeleteService(lb.L3n4AddrID, int, bool) error
+	UpsertService(uint16, net.IP, uint16, []*lb.BackendMeta, int, bool, lb.SVCType, bool, uint8, bool, uint32) error
+	DeleteService(lb.L3n4AddrID, int) error
 	AddBackend(uint16, net.IP, uint16, bool) error
 	DeleteBackendByID(uint16, bool) error
 	AddAffinityMatch(uint16, uint16) error
@@ -134,11 +133,23 @@ type Service struct {
 }
 
 // NewService creates a new instance of the service handler.
-func NewService(monitorNotify monitorNotify) *Service {
+func NewService(monitorNotify monitorNotify, alogo string) *Service {
 
 	var localHealthServer healthServer
 	if option.Config.EnableHealthCheckNodePort {
 		localHealthServer = healthserver.New()
+	}
+
+	var (
+		err error
+		lbm LBMap = &lbmap.LBBPFMap{}
+	)
+
+	if algo == option.NodePortAlgorithmMaglev {
+		lbm, err = lbmap.NewMaglevMap(lbmap.DefaultMaglevRingSize)
+		if err != nil {
+			log.WithError(err).Warn("Failed to create maglev map")
+		}
 	}
 
 	return &Service{
@@ -148,14 +159,14 @@ func NewService(monitorNotify monitorNotify) *Service {
 		backendByHash:   map[string]*lb.Backend{},
 		monitorNotify:   monitorNotify,
 		healthServer:    localHealthServer,
-		lbmap:           lbmap.New(),
+		lbmap:           lbm,
 	}
 }
 
 // InitMaps opens or creates BPF maps used by services.
 //
 // If restore is set to false, entries of the maps are removed.
-func (s *Service) InitMaps(ipv6, ipv4, sockMaps, restore bool) error {
+func (s *Service) InitMaps(ipv6, ipv4, sockMaps, restore, maglev bool) error {
 	s.Lock()
 	defer s.Unlock()
 
@@ -189,6 +200,14 @@ func (s *Service) InitMaps(ipv6, ipv4, sockMaps, restore bool) error {
 			if err := lbmap.CreateSockRevNat4Map(); err != nil {
 				return err
 			}
+		}
+	}
+	if maglev {
+		if err := lbmap.CreateMaglevRingMap(); err != nil {
+			return err
+		}
+		if !restore {
+			toDelete = append(toDelete, lbmap.MaglevRingMap)
 		}
 	}
 
@@ -271,7 +290,7 @@ func (s *Service) UpsertService(params *lb.SVC) (bool, lb.ID, error) {
 	if err = s.upsertServiceIntoLBMaps(svc, onlyLocalBackends, prevBackendCount, newBackends,
 		obsoleteBackendIDs, prevSessionAffinity,
 		prevLoadBalancerSourceRanges, obsoleteSVCBackendIDs,
-		scopedLog); err != nil {
+		scopedLog, keepBackend); err != nil {
 
 		return false, lb.ID(0), err
 	}
@@ -597,7 +616,7 @@ func (s *Service) addBackendsToAffinityMatchMap(svcID lb.ID, backendIDs []lb.Bac
 func (s *Service) upsertServiceIntoLBMaps(svc *svcInfo, onlyLocalBackends bool,
 	prevBackendCount int, newBackends []lb.Backend, obsoleteBackendIDs []lb.BackendID,
 	prevSessionAffinity bool, prevLoadBalancerSourceRanges []*cidr.CIDR,
-	obsoleteSVCBackendIDs []lb.BackendID, scopedLog *logrus.Entry) error {
+	obsoleteSVCBackendIDs []lb.BackendID, scopedLog *logrus.Entry, keepBackend bool) error {
 
 	ipv6 := svc.frontend.IsIPv6()
 
@@ -662,15 +681,15 @@ func (s *Service) upsertServiceIntoLBMaps(svc *svcInfo, onlyLocalBackends bool,
 	}
 
 	// Upsert service entries into BPF maps
-	backends := make(map[string]uint16, len(svc.backends))
-	for _, b := range svc.backends {
-		backends[b.String()] = uint16(b.ID)
+	backendIDs := make([]*lb.BackendMeta, len(svc.backends))
+	for i, b := range svc.backends {
+		backendIDs[i] = b.NewMeta()
 	}
 
 	err := s.lbmap.UpsertService(
 		uint16(svc.frontend.ID), svc.frontend.L3n4Addr.IP,
 		svc.frontend.L3n4Addr.L4Addr.Port,
-		backends, prevBackendCount,
+		backendIDs, prevBackendCount,
 		ipv6, svc.svcType, onlyLocalBackends,
 		svc.frontend.L3n4Addr.Scope,
 		svc.sessionAffinity, svc.sessionAffinityTimeoutSec,
@@ -681,6 +700,11 @@ func (s *Service) upsertServiceIntoLBMaps(svc *svcInfo, onlyLocalBackends bool,
 
 	if option.Config.EnableSessionAffinity {
 		s.addBackendsToAffinityMatchMap(svc.frontend.ID, toAddAffinity)
+	}
+
+	// Keep backends for graceful termination pods
+	if keepBackend {
+		return nil
 	}
 
 	// Remove backends not used by any service from BPF maps

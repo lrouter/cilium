@@ -109,6 +109,10 @@ const (
 	DbgSkLookup4
 	DbgSkLookup6
 	DbgSkAssign
+	DbgLbLookupMaglev
+	DbgLbLookupMaglevFail
+	DbgLbLookupMaglevSuccess
+	DbgLbLookupMaglevOuterFail
 )
 
 // must be in sync with <bpf/lib/conntrack.h>

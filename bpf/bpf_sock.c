@@ -337,6 +337,13 @@ static __always_inline int __sock4_xlate_fwd(struct bpf_sock_addr *ctx,
 		}
 
 		backend_id = backend_slot->backend_id;
+		key.slave = sock_local_cookie(ctx_full);
+		backend_id = __lb4_select_backend(&key, svc);
+		if (backend_id == (__u32)-1) {
+			update_metrics(0, METRIC_EGRESS, REASON_LB_NO_SLAVE);
+			return -ENOENT;
+		}
+
 		backend = __lb4_lookup_backend(backend_id);
 	}
 
@@ -759,6 +766,13 @@ static __always_inline int __sock6_xlate_fwd(struct bpf_sock_addr *ctx,
 		}
 
 		backend_id = backend_slot->backend_id;
+		key.slave = sock_local_cookie(ctx);
+		backend_id = __lb6_select_backend(&key, svc);
+		if (backend_id == (__u32)-1) {
+			update_metrics(0, METRIC_EGRESS, REASON_LB_NO_SLAVE);
+			return -ENOENT;
+		}
+
 		backend = __lb6_lookup_backend(backend_id);
 	}
 

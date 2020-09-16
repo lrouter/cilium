@@ -119,6 +119,18 @@ enum {
 	DBG_SK_ASSIGN,		/* arg1: result
 				 * arg2: unuseds
 				 */
+	DBG_LB_LOOKUP_MAGLEV,   /* arg1: rev_nat_index
+				 * arg2: dport
+				 */
+	DBG_LB_LOOKUP_MAGLEV_FAIL, /* arg1: rev_nat_index
+				    * arg2: dport
+				    */
+	DBG_LB_LOOKUP_MAGLEV_SUCCESS, /* arg1: rev_nat_index
+				       * arg2: backend_id
+				       */
+	DBG_LB_LOOKUP_MAGLEV_OUTER_FAIL /* arg1: hash
+				         * arg2: rev_nat_index
+					 */
 };
 
 /* Capture types */
